@@ -8,7 +8,7 @@ import { dismissStripHoverIn, stripPageOffstage } from "../../state/tabs/stripHo
 import { onTabPressEnd, tabPressHeld } from "../../state/sidebar/heldTabPress";
 import { noteTabStripChipsMeasured, noteTabStripCompact, noteTabStripReadable, noteTabStripHeldClose, noteTabStripOverflow, noteTabStripTabsInOverflow, noteTabStripRevealAfterPress, noteTabStripRevealHeldForScroll, noteTabStripScrolled, noteTabStripTitledTabs } from "../../state/telemetry/tabStripCounts";
 import { Offstage } from "../ui/useHover";
-import { usePageStyle } from "../../state/windows/profilePager";
+import { usePageInReach, usePageStyle } from "../../state/windows/profilePager";
 import { ThemeScope } from "../window/ThemeScope";
 import { TintInk } from "../ui/TintInk";
 import { DockContext, FloatingStrip } from "./context";
@@ -40,7 +40,8 @@ export const StripPage = memo(function StripPage({ profileId, slot, pageWidth, c
   const windowId = useWindowId();
   const flare = useContext(FloatingStrip) ? 0 : FLARE;
   const pageStyle = usePageStyle(windowId, slot, pageWidth + flare * 2);
-  const entries = useStripEntries(windowId, profileId);
+  const inReach = usePageInReach(windowId, profileId, current);
+  const entries = useStripEntries(windowId, profileId, !inReach);
   const activeId = useShownTabIdFor(windowId, profileId);
   const liveNeeds = useStripTitleNeeds(windowId, profileId);
   const shownNeeds = useRef(liveNeeds);

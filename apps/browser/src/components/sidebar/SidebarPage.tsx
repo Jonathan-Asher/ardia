@@ -10,7 +10,7 @@ import { newTab } from "../../state/tabs/actions";
 import { sidebarListLengthNow, useSidebarCells } from "../../state/sidebar/hooks";
 import { useSidebarField, useSidebarPart } from "../../state/sidebar/chrome";
 import { SIDEBAR_PLAYER_GROWTH, SIDEBAR_PLAYER_HEIGHT, SidebarPlayer, usePlayerMotion, useSidebarPlayerTab } from "../media/SidebarPlayer";
-import { usePageStyle } from "../../state/windows/profilePager";
+import { usePageInReach, usePageStyle } from "../../state/windows/profilePager";
 import { useSharedTilesStyle } from "../../state/sidebar/sharedTiles";
 import { DragScope, useDragPage, useDragController, useDragging, usePinnedCount } from "./DragProvider";
 import { openSidebarMenu } from "../../state/sidebar/menus";
@@ -64,7 +64,8 @@ export const SidebarPage = memo(function SidebarPage({ profileId, slot, paging, 
     const frame = requestAnimationFrame(() => setBeside(false));
     return () => cancelAnimationFrame(frame);
   }, [beside]);
-  const offScreen = beside && !current;
+  const inReach = usePageInReach(windowId, profileId, current);
+  const offScreen = (beside && !current) || !inReach;
   const playerTab = useSidebarPlayerTab(windowId, profileId, current);
   const playerHeight = playerTab ? SIDEBAR_PLAYER_HEIGHT : 0;
   const playerMotion = usePlayerMotion();
@@ -214,6 +215,7 @@ export const SidebarPage = memo(function SidebarPage({ profileId, slot, paging, 
                           contentContainerStyle={{ flexGrow: 1, width, paddingHorizontal: layout.sidebarInset, paddingTop: LIST_PAD, paddingBottom: docked ? GLOW_ROOM : 0 }}
                         >
                           <PageRows
+                            key={offScreen ? "away" : "near"}
                             windowId={windowId}
                             profileId={profileId}
                             current={current}
