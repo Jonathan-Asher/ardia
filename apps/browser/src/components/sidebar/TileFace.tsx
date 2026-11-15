@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import { DockSelection, radius, Surface, Text, withAlpha } from "../ui";
-import { hex, layout, useTheme } from "../ui/theme";
+import { hex, layout, useTheme, type Theme } from "../ui/theme";
 import { useTileTheme, type TileTheme } from "../../state/favicons/tileTheme";
 import { useTab } from "../../state/browser/hooks";
 import { GlassFill, useGlass } from "../ui/Glass";
@@ -22,6 +22,9 @@ const GLASS_RING = 2;
 
 type FaceState = { width: number; active: boolean; selected: boolean; hovered: boolean; pressed: boolean };
 type TopAppLook = Settings["selectedTopApp"];
+
+const tileWash = (theme: Theme, { selected, hovered, pressed }: Pick<FaceState, "selected" | "hovered" | "pressed">) =>
+  pressed ? theme.tabPressed : hovered || selected ? theme.tabHover : undefined;
 
 export const TileFace = memo(function TileFace({ tabId, badge, ...state }: FaceState & { tabId: string; badge?: ReactNode }) {
   return useQuietRows() ? <LetterTile tabId={tabId} badge={badge} {...state} /> : <RichTileFace tabId={tabId} badge={badge} {...state} />;
@@ -209,7 +212,7 @@ export function RestingTile({ width, selected, hovered, pressed, bare = false, c
         borderRadius: radius.pinned,
         borderWidth: selected ? 1 : StyleSheet.hairlineWidth,
         borderColor: selected ? tokens.dragBorder : theme.pinnedRestingStroke,
-        backgroundColor: pressed ? theme.tabPressed : hovered || selected ? theme.tabHover : theme.pinnedResting,
+        backgroundColor: tileWash(theme, { selected, hovered, pressed }) ?? theme.pinnedResting,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -223,9 +226,11 @@ function GlassTile({ width, active, selected, hovered, pressed, tileTheme, topAp
   const theme = useTheme();
   const tokens = useSidebarTokens();
   if (bare && !active && !selected && !hovered && !pressed) return <View style={{ width, height: layout.pinnedHeight, alignItems: "center", justifyContent: "center" }}>{children}</View>;
+  const wash = active ? undefined : tileWash(theme, { selected, hovered, pressed });
   return (
     <View style={{ width, height: layout.pinnedHeight }}>
       <GlassFill radius={radius.pinned} state={pressed ? "pressed" : active && topApp !== "outline" ? "active" : hovered || selected ? "lit" : "rest"}>
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius.pinned, backgroundColor: wash }]} />
         {active ? (
           <DockSelection
             image={tileTheme?.image}
