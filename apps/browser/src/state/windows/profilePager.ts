@@ -1,6 +1,6 @@
 import { pagerState, selectPager, stepPager, switchPager, type NativePagerConfig, type PagerSnapshot, type PagerStateEvent, type SwipeEvent } from "../../platform/pager";
 import { notePagerSettle } from "../telemetry/pagerCounts";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, unstable_batchedUpdates } from "react-native";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -218,6 +218,13 @@ export function usePageInReach(windowId: string, profileId: string, current: boo
     return () => clearTimeout(timer);
   }, [near, kept]);
   return near || kept;
+}
+
+export function useOffsetKeptAway(inReach: boolean, offset: () => number): number {
+  const kept = useRef<number | null>(null);
+  if (inReach) kept.current = null;
+  else kept.current ??= offset();
+  return kept.current ?? 0;
 }
 
 export function usePagerNativeConfig(windowId: string, width?: number): NativePagerConfig | undefined {

@@ -41,7 +41,7 @@ export const StripPage = memo(function StripPage({ profileId, slot, pageWidth, c
   const flare = useContext(FloatingStrip) ? 0 : FLARE;
   const pageStyle = usePageStyle(windowId, slot, pageWidth + flare * 2);
   const inReach = usePageInReach(windowId, profileId, current);
-  const entries = useStripEntries(windowId, profileId, !inReach);
+  const entries = useStripEntries(windowId, profileId);
   const activeId = useShownTabIdFor(windowId, profileId);
   const liveNeeds = useStripTitleNeeds(windowId, profileId);
   const shownNeeds = useRef(liveNeeds);
@@ -297,7 +297,7 @@ export const StripPage = memo(function StripPage({ profileId, slot, pageWidth, c
                       style={{ flex: 1 }}
                       contentContainerStyle={{ alignItems: "flex-start", gap: GAP, paddingLeft: flare, paddingRight: pinned ? Math.max(flare, GAP) : flare }}
                     >
-                      {parsed.flatMap((e) => {
+                      {!inReach ? <View style={{ width: tabsEnd }} /> : parsed.flatMap((e) => {
                         if (e.kind === "dock") return <PinnedDock key="dock" tabIds={e.ids} />;
                         const slot = slotIndex;
                         const lead = slot === 0 && spare && leadSpare ? <View key="held-lead" style={{ width: spare, marginRight: -GAP }} /> : null;

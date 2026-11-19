@@ -152,10 +152,7 @@ export function folderMenuItems(s: BrowserState, groupId: string, activeId: stri
   });
 }
 
-const NO_STRIP_ENTRIES: StripEntry[] = [];
-
-export const useStripEntries = (windowId: string, profileId: string, away = false) =>
-  useBrowser((s) => (away ? NO_STRIP_ENTRIES : stripEntries(s, windowId, profileId)));
+export const useStripEntries = (windowId: string, profileId: string) => useBrowser((s) => stripEntries(s, windowId, profileId));
 
 const titleNeedsMemo = new Map<string, { tabs: BrowserState["tabs"]; order: string[] | undefined; signature: string }>();
 
