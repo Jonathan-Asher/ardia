@@ -6,7 +6,7 @@ const { providerApprovalKey } = await import("@ardia/core");
 const { DEFAULT_SETTINGS } = await import("../settings/settings.ts");
 const { readConfig } = await import("../config/configSettings.ts");
 const { registerOmniboxProvider, useRegisteredProviders } = await import("./providers.ts");
-const { createProviderQueries } = await import("./providerQueries.ts");
+const { createProviderQueries, PROVIDER_DEADLINE_MS } = await import("./providerQueries.ts");
 const { configProviders, pendingConfigProviders } = await import("./configProviders.ts");
 const { approveOmniboxProvider, revokeOmniboxProvider } = await import("./providerApproval.ts");
 const { fetchRemoteRows, forgetRemoteProviderCache, REMOTE_PROVIDER } = await import("./remoteProvider.ts");
@@ -262,6 +262,36 @@ test("a global link template with a suggest endpoint keeps its row in a private 
     assert.equal(p?.sendsInput, false, "no endpoint in a private window");
     assert.deepEqual(await p.query("serendipity", new AbortController().signal), [{ title: "serendipity", url: "https://dict.example.com/define?q=serendipity" }]);
     assert.equal(f.calls.length, 0);
+  } finally {
+    f.restore();
+    revokeOmniboxProvider(providerApprovalKey(entries[0]));
+  }
+});
+
+test("a global link template's row shows at once and outlives a suggest endpoint that misses the deadline", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  forgetRemoteProviderCache();
+  const entries = [{ title: "Dictionary", url: "https://dict.example.com/define?q={query}", suggest: "https://dict.example.com/suggest?q={query}", global: true }];
+  approveOmniboxProvider(providerApprovalKey(entries[0]));
+  const f = fakeFetch((url) => (url.includes("slow") ? new Promise(() => {}) : reply(["fast", ["fast lane"]])));
+  try {
+    const providers = configProviders(entries, ctx);
+    const queries = createProviderQueries();
+    const seen = [];
+    queries.run("fast", providers, (s) => seen.push(s.rows.map((r) => r.url)));
+    await flush();
+    assert.deepEqual(seen, [["https://dict.example.com/define?q=fast"]], "the link doesn't wait for the endpoint");
+    t.mock.timers.tick(REMOTE_PROVIDER.debounceMs);
+    await flush();
+    assert.deepEqual(seen.at(-1), ["https://dict.example.com/define?q=fast", "https://dict.example.com/define?q=fast%20lane"], "a timely answer joins the link");
+    seen.length = 0;
+    queries.run("slow", providers, (s) => seen.push(s.rows.map((r) => r.url)));
+    t.mock.timers.tick(REMOTE_PROVIDER.debounceMs);
+    await flush();
+    assert.equal(f.calls.at(-1).url, "https://dict.example.com/suggest?q=slow", "the endpoint was asked and hasn't answered");
+    t.mock.timers.tick(PROVIDER_DEADLINE_MS);
+    await flush();
+    assert.deepEqual(seen, [["https://dict.example.com/define?q=slow"]], "the deadline drops only the endpoint's part");
   } finally {
     f.restore();
     revokeOmniboxProvider(providerApprovalKey(entries[0]));

@@ -44,15 +44,14 @@ function configProvider(c: ProviderConfig, partition: string, remote: boolean): 
     ...(c.keyword ? { keyword: c.keyword } : {}),
     ...(c.url ? { host: hostOf(c.url.split(QUERY_SLOT).join("q")), template: c.url.split(QUERY_SLOT).join("%s") } : {}),
     sendsInput: !!suggest,
-    async query(text, signal) {
+    async query(text, signal, publish) {
       const typed = text.trim();
       const address = looksLikeAddress(typed);
       const link = c.global && c.url && typed && !address ? fillProviderTemplate(c.url, typed) : null;
-      const linked: ProviderRow[] = link ? [{ title: typed, url: link }] : [];
-      const local: ProviderRow[] = c.global && !typed ? [] : matchProviderRows(c.rows, text);
-      if (!suggest || !typed || (c.global && address)) return [...linked, ...local];
-      const fetched = await fetchRemoteRows(suggest, typed, partition, signal, c.url);
-      return [...linked, ...local, ...fetched];
+      const local: ProviderRow[] = [...(link ? [{ title: typed, url: link }] : []), ...(c.global && !typed ? [] : matchProviderRows(c.rows, text))];
+      if (!suggest || !typed || (c.global && address)) return local;
+      publish(local);
+      return [...local, ...(await fetchRemoteRows(suggest, typed, partition, signal, c.url))];
     },
   };
 }
