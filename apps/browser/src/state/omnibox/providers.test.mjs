@@ -252,3 +252,18 @@ test("a request cancelled before it is sent never reaches the network", async ()
     f.restore();
   }
 });
+
+test("a global link template with a suggest endpoint keeps its row in a private window and sends nothing", async () => {
+  const entries = [{ title: "Dictionary", url: "https://dict.example.com/define?q={query}", suggest: "https://dict.example.com/suggest?q={query}", global: true }];
+  approveOmniboxProvider(providerApprovalKey(entries[0]));
+  const f = fakeFetch(() => reply(["serendipity", ["serendipity meaning"]]));
+  try {
+    const [p] = configProviders(entries, { ...ctx, privateContext: true });
+    assert.equal(p?.sendsInput, false, "no endpoint in a private window");
+    assert.deepEqual(await p.query("serendipity", new AbortController().signal), [{ title: "serendipity", url: "https://dict.example.com/define?q=serendipity" }]);
+    assert.equal(f.calls.length, 0);
+  } finally {
+    f.restore();
+    revokeOmniboxProvider(providerApprovalKey(entries[0]));
+  }
+});

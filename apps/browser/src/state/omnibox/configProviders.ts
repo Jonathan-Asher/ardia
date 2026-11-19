@@ -63,7 +63,6 @@ export function configProviders(entries: readonly ProviderEntry[], { partition, 
     const approved = !needsApproval(config) || isProviderApproved(key);
     if (config.global && !approved) continue;
     const remote = !!config.suggest && approved && !privateContext;
-    if (config.global && config.suggest && !remote && !config.rows.length) continue;
     out.push(configProvider(config, partition, remote));
   }
   return out;
